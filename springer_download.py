@@ -9,39 +9,33 @@ import urllib
 import re
 import tempfile
 import shutil
-import subprocess
+#import pyPdf later
 
 # Set some kind of User-Agent so we don't get blocked by SpringerLink
 class SpringerURLopener(urllib.FancyURLopener):
     version = "Mozilla 5.0"
 
 def pdfcat(fileList, bookTitlePath):
-    if findInPath("pdftk") != False:
-        command = [findInPath("pdftk")]
-        command.extend(fileList)
-        command.extend(["cat", "output", bookTitlePath])
-        subprocess.Popen(command, shell=False).wait()
-    elif findInPath("stapler") != False:
-        command = [findInPath("stapler"), "cat"]
-        command.extend(fileList)
-        command.append(bookTitlePath)
-        subprocess.Popen(command, shell=False).wait()
-    else:
-        error("You have to install pdftk (http://www.accesspdf.com/pdftk/) or stapler (http://github.com/hellerbarde/stapler).")
+    writer = pyPdf.PdfFileWriter()
+    for inputFile in fileList:
+        inputPdf = pyPdf.PdfFileReader(file(inputFile, "rb"))
+        print "Merge {0}".format(inputFile)
+        for pageNum in range(inputPdf.getNumPages()):
+            writer.addPage(inputPdf.getPage(pageNum))
+    writer.write(file(bookTitlePath, "wb"))
 
 # validate CLI arguments and start downloading
 def main(argv):
-    if not findInPath("iconv"):
-        error("You have to install iconv.")
-
     try:
-        opts, args = getopt.getopt(argv, "hl:c:n", ["help", "link=", "content=", "no-merge"])
+        opts, args = getopt.getopt(argv, "hl:s:c:", ["help", "link=","content=","socksaddr=","socksport="])
     except getopt.GetoptError:
         error("Could not parse command line arguments.")
 
     link = ""
     hash = ""
     merge = True
+    socks_port = 1080
+    socks_host = None
 
     for opt, arg in opts:
         if opt in ("-h", "--help"):
@@ -63,13 +57,19 @@ def main(argv):
             hash = match.group("hash")
         elif opt in ("-n", "--no-merge"):
             merge = False
+        elif opt in ("-s","--socksaddr"):
+            socks_host = arg
+            log("use socks proxy at {0}\n".format(arg))
+        elif opt in ("--socksport"):
+            socks_port = int(arg)
+            log("set socks port to {0}\n".format(socks_port))
 
     if hash == "":
       usage()
       error("Either a link or a hash must be given.")
 
-    if merge and not findInPath("pdftk") and not findInPath("stapler"):
-        error("You have to install pdftk (http://www.accesspdf.com/pdftk/) or stapler (http://github.com/hellerbarde/stapler).")
+    if socks_host:
+            socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, addr=socks_host, port=socks_port, rdns=True)
 
     baseLink = "http://springerlink.com/content/" + hash + "/"
     link = baseLink + "contents/"
@@ -220,9 +220,11 @@ def usage():
 %s [OPTIONS]
 
 Options:
-  -h, --help              Display this usage message
-  -l LINK, --link=LINK    defines the link of the book you intend to download
-  -c ISBN, --content=ISBN builds the link from a given ISBN (see below)
+  -h, --help                  Display this usage message
+  -l LINK, --link=LINK        defines the link of the book you intend to download
+  -c ISBN, --content=ISBN     builds the link from a given ISBN (see below)
+  -s saddr, --socksaddr=saddr Use given SOCKS Proxy Host.
+            --socksport=sport  Use given Port to connect SOCKS Proxy (Default: 1080)
 
   -n, --no-merge          Only download the chapters but don't merge them into a single PDF.
 
@@ -236,6 +238,10 @@ LINK:
   Where: ISBN is a string consisting of lower-case, latin chars and numbers.
          It alone identifies the book you intent do download.
          STUFF is optional and looks like #section=... or similar. It will be stripped.
+saddr:
+  SOCKS Proxy Address. 
+  Remote DNS is enabled. No Authentification supported.
+  For use with ssh -D <socksport> <host>
 """ % os.path.basename(sys.argv[0])
 
 # raise an error and quit
@@ -284,9 +290,26 @@ def geturl(url, dst):
     return response
 
 def sanitizeFilename(filename):
-    p1 = subprocess.Popen(["echo", filename], stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(["iconv", "-f", "UTF-8", "-t" ,"ASCII//TRANSLIT"], stdin=p1.stdout, stdout=subprocess.PIPE)
-    return re.sub("\s+", "_", p2.communicate()[0].strip().replace("/", "-"))
+    return re.sub("\s+", "_", unicode(filename).encode("ascii", "replace").replace("/","-"))
+
+sys.path.append(os.path.join(os.path.dirname(sys.argv[0]), "lib/pyPdf"))
+try:
+    import pyPdf
+except ImportError:
+    error("Failed to import pyPdf. May not be installed or you need to run git submodule init; git submodule update")
+
+sys.path.append(os.path.join(os.path.dirname(sys.argv[0]), "lib/socksipy"))
+try:
+    import socket
+    import socks
+    socket.socket = socks.socksocket
+except ImportError:
+    log("Error importing socks")
+    class socks:
+        PROXY_TYPE_SOCKS5=None
+        @staticmethod
+        def setdefaultproxy(*a,**kw):
+            error("Socks not available. install python-socksipy")
 
 # start program
 if __name__ == "__main__":
