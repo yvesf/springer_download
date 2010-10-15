@@ -276,7 +276,7 @@ def geturl(url, dst):
     return response
 
 def sanitizeFilename(filename):
-    return re.sub("\s+", "_", unicode(filename).encode("ascii", "replace").replace("/","-"))
+    return re.sub("\s+", "_", unicode(filename, "utf8").encode("ascii", "replace").replace("/","-"))
 
 sys.path.append(os.path.join(os.path.dirname(sys.argv[0]), "lib/pyPdf"))
 try:
