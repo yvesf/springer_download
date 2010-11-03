@@ -116,9 +116,9 @@ def main(argv):
                 #bookTitle += " - " + match.group(1).strip()
 
             # coverimage
-            match = re.search(r'<div class="coverImage" style="background-image: url\(/content/([^/]+)/cover-medium\.gif\)">', page)
+            match = re.search(r'<div class="coverImage" title="Cover Image" style="background-image: url\(/content/([^/]+)/cover-medium\.gif\)">', page)
             if match:
-                coverLink = "http://springerlink.com/contents/" + match.group(1) + "/cover-large.gif"
+                coverLink = "http://springerlink.com/content/" + match.group(1) + "/cover-large.gif"
 
             bookTitlePath = curDir + "/%s.pdf" % sanitizeFilename(bookTitle)
             if bookTitlePath == "":
@@ -300,3 +300,5 @@ except ImportError:
 # start program
 if __name__ == "__main__":
     main(sys.argv[1:])
+
+# kate: indent-width 4; replace-tabs on;
