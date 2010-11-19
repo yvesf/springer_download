@@ -215,8 +215,8 @@ Options:
   -h, --help                  Display this usage message
   -l LINK, --link=LINK        defines the link of the book you intend to download
   -c ISBN, --content=ISBN     builds the link from a given ISBN (see below)
-  -s saddr, --socksaddr=saddr Use given SOCKS Proxy Host.
-            --socksport=sport  Use given Port to connect SOCKS Proxy (Default: 1080)
+  -s SADDR, --socksaddr=SADDR Use given SOCKS Proxy Host.
+            --socksport=SPORT  Use given Port to connect SOCKS Proxy (Default: 1080)
 
 You have to set exactly one of these options.
 
@@ -228,10 +228,16 @@ LINK:
   Where: ISBN is a string consisting of lower-case, latin chars and numbers.
          It alone identifies the book you intent do download.
          STUFF is optional and looks like #section=... or similar. It will be stripped.
-saddr:
+
+SADDR,SPORT:
   SOCKS Proxy Address. 
   Remote DNS is enabled. No Authentification supported.
   For use with ssh -D <socksport> <host>
+
+Using a http-proxy:
+  you could specify a HTTP-Proxy using the http_proxy environment variable, example:
+     $ export http_proxy="http://localhost:3128"
+     $ ./springer_download.py -l "http://...."
 """ % os.path.basename(sys.argv[0])
 
 # raise an error and quit
