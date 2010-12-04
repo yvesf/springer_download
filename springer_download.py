@@ -225,7 +225,6 @@ Options:
   -c ISBN, --content=ISBN     builds the link from a given ISBN (see below)
   -s SADDR, --socksaddr=SADDR Use given SOCKS Proxy Host.
             --socksport=SPORT  Use given Port to connect SOCKS Proxy (Default: 1080)
-
   -n, --no-merge          Only download the chapters but don't merge them into a single PDF.
 
 You have to set exactly one of these options.
